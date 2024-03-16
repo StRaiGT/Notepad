@@ -8,6 +8,8 @@ const autoprefixer = require('autoprefixer');
 const mediaquery = require('postcss-combine-media-query');
 const cssnano = require('cssnano');
 const htmlMinify = require('html-minifier');
+const gulpPug = require('gulp-pug');
+const sass = require('gulp-sass')(require('sass'));
 
 function serve() {
   browserSync.init({
@@ -15,6 +17,29 @@ function serve() {
       baseDir: './dist'
     }
   });
+}
+
+function scss() {
+  const plugins = [
+      autoprefixer(),
+      mediaquery(),
+      cssnano()
+  ];
+  return gulp.src('src/**/*.scss')
+        .pipe(sass())
+        .pipe(concat('bundle.css'))
+        .pipe(postcss(plugins))
+        .pipe(gulp.dest('dist/'))
+        .pipe(browserSync.reload({stream: true}));
+}
+
+function pug() {
+  return gulp.src('src/pages/**/*.pug')
+        .pipe(gulpPug({
+          pretty: true
+        }))
+        .pipe(gulp.dest('dist/'))
+        .pipe(browserSync.reload({stream: true}));
 }
 
 function html() {
@@ -45,7 +70,7 @@ function css() {
       mediaquery(),
       cssnano()
   ];
-  return gulp.src('src/blocks/**/*.css')
+  return gulp.src('src/**/*.css')
         .pipe(plumber())
         .pipe(concat('bundle.css'))
         .pipe(postcss(plugins))
@@ -54,7 +79,7 @@ function css() {
 }
 
 function images() {
-  return gulp.src('src/images/**/*.{jpg,png,svg,gif,ico,webp,avif}')
+  return gulp.src('src/**/*.{jpg,png,svg,gif,ico,webp,avif}')
     .pipe(gulp.dest('dist/images'))
     .pipe(browserSync.reload({stream: true}));
 }
@@ -64,16 +89,20 @@ function clean() {
 }
 
 function watchFiles() {
+  gulp.watch(['src/**/*.pug'], pug);
   gulp.watch(['src/**/*.html'], html);
-  gulp.watch(['src/blocks/**/*.css'], css);
-  gulp.watch(['src/images/**/*.{jpg,png,svg,gif,ico,webp,avif}'], images);
+  gulp.watch(['src/**/*.css'], css);
+  gulp.watch(['src/**/*.scss'], scss);
+  gulp.watch(['src/**/*.{jpg,png,svg,gif,ico,webp,avif}'], images);
 }
 
-const build = gulp.series(clean, gulp.parallel(html, css, images));
+const build = gulp.series(clean, gulp.parallel(pug, scss, images));
 const watchapp = gulp.parallel(build, watchFiles, serve);
 
 exports.html = html;
+exports.pug = pug;
 exports.css = css;
+exports.scss = scss;
 exports.images = images;
 exports.clean = clean;
 
